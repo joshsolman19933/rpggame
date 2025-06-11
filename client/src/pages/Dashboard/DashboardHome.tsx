@@ -7,15 +7,13 @@ import {
   Button, 
   Flex, 
   SimpleGrid, 
-  Badge, 
-  Progress, 
   HStack, 
   Icon,
   Tooltip,
   useColorModeValue,
   SlideFade
 } from '@chakra-ui/react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { IconType } from 'react-icons';
 import { 
   FaHome, 
@@ -24,14 +22,9 @@ import {
   FaUsers, 
   FaShieldAlt, 
   FaFireAlt, 
-  FaMagic, 
-  FaLeaf,
-  FaClock,
+  FaMagic,
   FaInfoCircle,
-  FaTrophy,
-  FaStar,
-  FaMedal,
-  FaGift
+  FaTrophy
 } from 'react-icons/fa';
 
 // Define types
@@ -64,45 +57,51 @@ interface BuildingCardProps {
 // Animation variants for building card
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: {
+  visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.3 }
-  },
+    transition: { 
+      duration: 0.4,
+      delay: 0.1 * i,
+      ease: [0.22, 1, 0.36, 1]
+    }
+  }),
   hover: {
-    y: -10,
-    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+    y: -8,
+    boxShadow: '0 15px 30px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
     transition: {
-      y: { type: 'spring', stiffness: 400, damping: 10 }
+      y: { 
+        type: 'spring', 
+        stiffness: 400, 
+        damping: 15
+      },
+      boxShadow: { duration: 0.3 }
     }
   },
   tap: {
-    scale: 0.98
+    scale: 0.96,
+    transition: { 
+      type: 'spring',
+      stiffness: 500,
+      damping: 20
+    }
   }
 };
 
-// Animation variants for particles
+// Animation variants for particles - simplified to prevent performance issues
 const particleVariants = {
   hidden: { opacity: 0 },
-  visible: () => {
-    const delay = Math.random() * 5;
-    const duration = Math.random() * 15 + 10;
-    const startY = Math.random() * 100;
-    const startX = Math.random() * 100;
-    
-    return {
-      opacity: [0, 0.5, 0],
-      y: [startY, startY + 50, startY + 100],
-      x: [startX, startX, startX],
-      scale: [0.5, 1, 0.5],
-      transition: {
-        duration: duration,
-        delay: delay,
-        repeat: Infinity,
-        ease: 'easeInOut',
-        times: [0, 0.5, 1]
-      }
-    };
+  visible: {
+    opacity: [0, 0.5, 0],
+    y: [0, 50, 100],
+    x: [0, 0, 0],
+    scale: [0.5, 1, 0.5],
+    transition: {
+      duration: 10,
+      repeat: Infinity,
+      ease: 'easeInOut',
+      times: [0, 0.5, 1]
+    }
   }
 };
 
@@ -120,127 +119,54 @@ const containerVariants = {
   }
 };
 
-// Animation variants for achievements (used in the future)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const achievementVariants = {
-  initial: { scale: 0.8, opacity: 0 },
-  animate: { 
-    scale: 1, 
-    opacity: 1,
-    transition: { 
-      type: 'spring',
-      stiffness: 500,
-      damping: 30
-    }
-  },
-  exit: { 
-    scale: 0.8, 
-    opacity: 0,
-    transition: { duration: 0.2 }
-  },
-  hover: { 
-    y: -5,
-    transition: { type: 'spring', stiffness: 400, damping: 10 }
-  }
-};
-
-// Achievement type
-type AchievementType = {
-  id: number;
-  name: string;
-  description: string;
-  icon: React.ComponentType;
-  color: string;
-  unlocked: boolean;
-};
-
-// Achievement notification component
-const AchievementNotification = ({ 
-  achievement, 
-  onClose 
-}: { 
-  achievement: AchievementType; 
-  onClose: () => void 
-}) => (
-  <motion.div
-    initial={{ x: '100%' }}
-    animate={{ x: 0 }}
-    exit={{ x: '100%' }}
-    transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-    style={{
-      position: 'fixed',
-      top: '20px',
-      right: '20px',
-      zIndex: 1000,
-      minWidth: '300px',
-      maxWidth: '90%',
-      backgroundColor: '#2D3748',
-      color: 'white',
-      borderRadius: '8px',
-      padding: '16px',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-    }}
-  >
-    <Flex align="center">
-      <Box
-        as={motion.div}
-        initial={{ scale: 0 }}
-        animate={{ 
-          scale: [0, 1.2, 1],
-          rotate: [0, 10, -10, 0]
-        }}
-        transition={{ 
-          duration: 0.6,
-          ease: 'easeOut',
-          times: [0, 0.6, 1]
-        }}
-        mr={3}
-        fontSize="24px"
-        color="gold"
-      >
-        <FaMedal />
-      </Box>
-      <Box flex={1}>
-        <Text fontWeight="bold" fontSize="lg" color="gold.300">Achievement Unlocked!</Text>
-        <Text fontSize="sm" opacity={0.9}>{achievement.name}</Text>
-        <Text fontSize="xs" opacity={0.7} mt={1}>{achievement.description}</Text>
-      </Box>
-      <Button 
-        size="sm" 
-        variant="ghost" 
-        onClick={onClose}
-        _hover={{ bg: 'rgba(255,255,255,0.1)' }}
-        p={1}
-      >
-        ✕
-      </Button>
-    </Flex>
-  </motion.div>
-);
+// Achievement notification component (simplified for now)
+const AchievementNotification = () => null;
 
 // Building card component
 const BuildingCard: React.FC<BuildingCardProps> = ({ building, onUpgrade }) => {
+  const [isTapped, setIsTapped] = useState(false);
+  
   const handleUpgrade = () => {
-    onUpgrade(building.id);
+    if (building.isUpgrading || building.locked) return;
+    
+    // Visual feedback
+    setIsTapped(true);
+    setTimeout(() => setIsTapped(false), 200);
     
     // Check for achievements when upgrading
     if (building.level === 1) {
-      // This would be connected to your achievement system
-      // unlockAchievement('first_upgrade');
+      console.log('Achievement unlocked: First upgrade!');
     }
+    
+    // Trigger upgrade
+    onUpgrade(building.id);
   };
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const hoverBg = useColorModeValue('gray.50', 'gray.700');
+  
+  // Simple particle effect for upgrades
+  const renderParticles = () => {
+    return null; // Disabled for performance
+  }
+  
+  const cardBg = 'gray.800';
+  const borderColor = 'gray.700';
+  const hoverBg = 'gray.700';
   
   return (
     <Box
       as={motion.div}
       initial="hidden"
-      animate="visible"
+      animate={controls}
+      onAnimationComplete={() => {
+        if (building.isUpgrading) {
+          controls.start('upgrade');
+        } else {
+          controls.start('visible');
+        }
+      }}
       whileHover="hover"
-      whileTap="tap"
+      whileTap={isTapped ? 'tap' : undefined}
       variants={cardVariants}
+      custom={building.id % 3} // Stagger animation based on ID
       bg={cardBg}
       borderWidth="1px"
       borderColor={borderColor}
@@ -248,10 +174,48 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building, onUpgrade }) => {
       p={4}
       position="relative"
       overflow="hidden"
-      _hover={{ bg: hoverBg }}
-      cursor="pointer"
-      onClick={() => onUpgrade(building.id)}
+      _hover={{ 
+        bg: hoverBg,
+        '& .building-icon': {
+          transform: 'rotate(5deg) scale(1.1)',
+          filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.2))'
+        }
+      }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      onClick={handleUpgrade}
+      cursor={building.locked ? 'not-allowed' : 'pointer'}
+      opacity={building.locked ? 0.7 : 1}
+      transition="all 0.3s ease"
+      style={{
+        transformOrigin: 'center bottom',
+        willChange: 'transform, box-shadow, opacity',
+      }}
     >
+      {renderParticles()}
+      
+      {/* Lock overlay for locked buildings */}
+      {building.locked && (
+        <Box
+          position="absolute"
+          top={0}
+          left={0}
+          right={0}
+          bottom={0}
+          bg="blackAlpha.600"
+          zIndex={1}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          flexDirection="column"
+          borderRadius="lg"
+        >
+          <Icon as={FaLock} color="white" boxSize={6} mb={2} />
+          <Text color="white" fontSize="xs" fontWeight="bold">
+            ZÁROLT
+          </Text>
+        </Box>
+      )}
       {/* Glow effect on hover */}
       <Box
         as={motion.div}
@@ -271,14 +235,24 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building, onUpgrade }) => {
       <Flex justify="space-between" align="center" mb={3}>
         <HStack spacing={2}>
           <motion.div
-            whileHover={{ scale: 1.1, rotate: 5 }}
-            whileTap={{ scale: 0.9 }}
+            className="building-icon"
+            initial={false}
+            animate={{
+              scale: isHovered ? 1.1 : 1,
+              rotate: isHovered ? 5 : 0,
+              transition: {
+                type: 'spring',
+                stiffness: 500,
+                damping: 15
+              }
+            }}
           >
             <Icon 
               as={building.icon} 
               color={`${building.color}.500`} 
-              boxSize={5} 
+              boxSize={5}
               filter="drop-shadow(0 0 2px rgba(0,0,0,0.2))"
+              transition="all 0.3s ease"
             />
           </motion.div>
           <motion.div
@@ -364,14 +338,42 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building, onUpgrade }) => {
                 animate={{ width: '100%' }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <Progress 
-                  value={building.progress} 
-                  size="sm" 
-                  colorScheme="yellow" 
-                  borderRadius="full"
-                  hasStripe
-                  isAnimated
-                />
+                <Box position="relative" w="100%" bg="gray.200" borderRadius="full" overflow="hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ 
+                      width: `${building.progress}%`,
+                      transition: {
+                        duration: 0.8,
+                        ease: [0.16, 1, 0.3, 1]
+                      }
+                    }}
+                    style={{
+                      height: '8px',
+                      background: 'linear-gradient(90deg, #F6E05E 0%, #D69E2E 100%)',
+                      borderRadius: '4px',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                      willChange: 'width'
+                    }}
+                  >
+                    <Box
+                      position="absolute"
+                      top={0}
+                      left={0}
+                      right={0}
+                      bottom={0}
+                      sx={{
+                        background: 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%)',
+                        backgroundSize: '200% 100%',
+                        animation: 'shimmer 2s infinite',
+                        '@keyframes shimmer': {
+                          '0%': { backgroundPosition: '200% 0' },
+                          '100%': { backgroundPosition: '-200% 0' }
+                        }
+                      }}
+                    />
+                  </motion.div>
+                </Box>
               </motion.div>
               <motion.div
                 initial={{ opacity: 0 }}
@@ -745,7 +747,6 @@ const DashboardHome = () => {
                       transform: 'scale(1.1) rotate(5deg)'
                     }
                   }}
-                  transition="all 0.3s ease, transform 0.2s ease"
                 >
                   <Tooltip label={ach.desc} hasArrow placement="top">
                     <Flex direction="column" align="center">
@@ -753,7 +754,12 @@ const DashboardHome = () => {
                         className="achievement-icon"
                         fontSize="2xl"
                         mb={2}
-                        transition="transform 0.3s ease"
+                        sx={{
+                          transition: 'transform 0.3s ease',
+                          '&:hover': {
+                            transform: 'scale(1.1) rotate(5deg)'
+                          }
+                        }}
                       >
                         {ach.icon}
                       </Box>
