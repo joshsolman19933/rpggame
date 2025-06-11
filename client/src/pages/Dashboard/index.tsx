@@ -1,7 +1,8 @@
-import React, { Suspense, lazy, useEffect, useState, Component, ErrorInfo, ReactNode } from 'react';
-import { Box, Skeleton, Flex } from '@chakra-ui/react';
+import React, { Suspense, lazy, useEffect, useState, useCallback, Component, ErrorInfo, ReactNode } from 'react';
+import { Box, Skeleton, Flex, IconButton, useDisclosure, useBreakpointValue } from '@chakra-ui/react';
 import { keyframes } from '@emotion/react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
+import { FiMenu, FiX } from 'react-icons/fi';
 
 // Lazy load components
 const DashboardHeader = lazy(() => import('./components/DashboardHeader'));
@@ -35,6 +36,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Error is intentionally not used in production
+    // eslint-disable-next-line no-console
     console.error('Error boundary caught:', error, errorInfo);
   }
 
@@ -73,14 +76,76 @@ const fadeIn = keyframes`
 
 const Dashboard: React.FC<DashboardProps> = ({ children }) => {
   const [isMounted, setIsMounted] = useState(false);
-  // Dark theme colors
-  const bgGradient = 'linear(to-br, #121212 0%, #1A202C 100%)';
+  const [scrolled, setScrolled] = useState(false);
+  const { isOpen: isMobileMenuOpen, onToggle: toggleMobileMenu } = useDisclosure();
+  const location = useLocation();
+  
+  // Close mobile menu on route change
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      toggleMobileMenu();
+    }
+  }, [location]);
+
+  // Handle scroll for header shadow with throttling
+  const handleScroll = useCallback(() => {
+    const isScrolled = window.scrollY > 10;
+    if (isScrolled !== scrolled) {
+      setScrolled(isScrolled);
+    }
+  }, [scrolled]);
+  
+  // Close mobile menu when clicking outside
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    const target = event.target as HTMLElement;
+    const navElement = document.querySelector('nav');
+    const menuButton = document.querySelector('[aria-label="Toggle menu"]');
+    
+    if (isMobileMenuOpen && navElement && menuButton) {
+      const isClickInside = navElement.contains(target) || menuButton.contains(target);
+      if (!isClickInside) {
+        toggleMobileMenu();
+      }
+    }
+  }, [isMobileMenuOpen, toggleMobileMenu]);
+
+  // Add event listeners
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [handleScroll, handleClickOutside]);
+
+  // Responsive values
+  const isMobile = useBreakpointValue({ base: true, md: false });
+  const headerHeight = useBreakpointValue({ base: '60px', md: '70px' });
+  const mainContentPadding = useBreakpointValue({ base: 3, md: 6 });
+  
+  // Dark theme colors with improved contrast
+  const bgGradient = 'linear(to-br, #0f0f13 0%, #1a1c23 100%)';
 
   // Track mount state for animations
   useEffect(() => {
     setIsMounted(true);
-    return () => setIsMounted(false);
+    return () => {
+      setIsMounted(false);
+    };
   }, []);
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      toggleMobileMenu();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, isMobileMenuOpen]);
+
+  // Responsive sidebar state
+  const sidebarWidth = useBreakpointValue({ base: '250px', lg: '220px' }) || '250px';
 
   return (
     <Box 
@@ -96,7 +161,38 @@ const Dashboard: React.FC<DashboardProps> = ({ children }) => {
       pt={{ base: '60px', md: '70px' }}
     >
       <ErrorBoundary>
-        <DashboardHeaderWithSuspense />
+        <Box
+          as="header"
+          position="fixed"
+          top={0}
+          left={0}
+          right={0}
+          height={headerHeight}
+          bg="rgba(15, 15, 20, 0.95)"
+          backdropFilter="blur(10px)"
+          zIndex={20}
+          borderBottomWidth="1px"
+          borderBottomColor={scrolled ? 'rgba(255,255,255,0.1)' : 'transparent'}
+          transition="all 0.3s ease"
+          boxShadow={scrolled ? '0 4px 20px rgba(0,0,0,0.2)' : 'none'}
+        >
+          <DashboardHeaderWithSuspense />
+          {isMobile && (
+            <IconButton
+              aria-label="Toggle menu"
+              icon={isMobileMenuOpen ? <FiX /> : <FiMenu />}
+              onClick={toggleMobileMenu}
+              position="absolute"
+              right={4}
+              top="50%"
+              transform="translateY(-50%)"
+              zIndex={21}
+              variant="ghost"
+              color="white"
+              _hover={{ bg: 'rgba(255,255,255,0.1)' }}
+            />
+          )}
+        </Box>
       </ErrorBoundary>
     
       {/* Background Image with Overlay */}
@@ -132,28 +228,62 @@ const Dashboard: React.FC<DashboardProps> = ({ children }) => {
         display="flex"
         width="100%"
         overflow="hidden"
-        height="calc(100vh - 70px)"
+        height={{ base: 'auto', md: `calc(100vh - ${headerHeight})` }}
+        mt={{ base: headerHeight, md: 0 }}
       >
         {/* Navigation Menu - Left Sidebar */}
         <ErrorBoundary>
           <Box
             as="nav"
-            w={{ base: '60px', lg: '220px' }}
-            bg="rgba(26, 32, 44, 0.95)"
+            w={{ base: '250px', lg: '220px' }}
+            bg="rgba(20, 22, 30, 0.98)"
             borderRightWidth="1px"
             borderRightColor="rgba(255, 255, 255, 0.1)"
             flexShrink={0}
-            zIndex={10}
-            position="relative"
+            zIndex={15}
+            position={{
+              base: 'fixed',
+              md: 'relative'
+            }}
+            left={{
+              base: isMobileMenuOpen ? 0 : '-250px',
+              md: 0
+            }}
+            top={{
+              base: headerHeight,
+              md: 0
+            }}
+            bottom={0}
             overflowY="auto"
+            transition="transform 0.3s ease-in-out, left 0.3s ease-in-out"
             sx={{
               '&::-webkit-scrollbar': { width: '4px' },
-              '&::-webkit-scrollbar-thumb': { bg: 'rgba(255, 255, 255, 0.2)', borderRadius: 'full' },
+              '&::-webkit-scrollbar-thumb': { 
+                bg: 'rgba(255, 255, 255, 0.2)', 
+                borderRadius: 'full' 
+              },
               '&::-webkit-scrollbar-track': { bg: 'transparent' }
+            }}
+            boxShadow={{
+              base: isMobileMenuOpen ? '4px 0 20px rgba(0,0,0,0.3)' : 'none',
+              md: 'none'
             }}
           >
             <NavigationMenuWithSuspense />
           </Box>
+          {isMobileMenuOpen && (
+            <Box
+              position="fixed"
+              top={headerHeight}
+              left={0}
+              right={0}
+              bottom={0}
+              bg="rgba(0,0,0,0.5)"
+              zIndex={14}
+              onClick={toggleMobileMenu}
+              backdropFilter="blur(2px)"
+            />
+          )}
         </ErrorBoundary>
 
         {/* Main Content Area */}
@@ -168,14 +298,29 @@ const Dashboard: React.FC<DashboardProps> = ({ children }) => {
             as="main"
             flex="1" 
             minW={0}
-            p={{ base: 3, md: 6 }}
+            p={mainContentPadding}
             position="relative"
             overflowY="auto"
             zIndex={1}
             sx={{
               '&::-webkit-scrollbar': { width: '6px' },
-              '&::-webkit-scrollbar-thumb': { bg: 'rgba(255, 255, 255, 0.2)', borderRadius: 'full' },
-              '&::-webkit-scrollbar-track': { bg: 'transparent' }
+              '&::-webkit-scrollbar-thumb': { 
+                bg: 'rgba(255, 255, 255, 0.2)', 
+                borderRadius: 'full',
+                '&:hover': {
+                  bg: 'rgba(255, 255, 255, 0.3)'
+                }
+              },
+              '&::-webkit-scrollbar-track': { bg: 'transparent' },
+              scrollBehavior: 'smooth',
+              scrollPaddingTop: '20px',
+              WebkitOverflowScrolling: 'touch'
+            }}
+            _focusVisible={{
+              outline: '2px solid',
+              outlineColor: 'blue.400',
+              outlineOffset: '2px',
+              borderRadius: 'md'
             }}
           >
             <ErrorBoundary>
@@ -190,6 +335,10 @@ const Dashboard: React.FC<DashboardProps> = ({ children }) => {
                 zIndex={1}
                 border="1px solid"
                 borderColor="whiteAlpha.100"
+                transition="all 0.2s ease"
+                _hover={{
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1)'
+                }}
               >
                 {children || <Outlet />}
               </Box>

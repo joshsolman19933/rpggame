@@ -9,9 +9,11 @@ import {
   SimpleGrid, 
   HStack, 
   Icon,
+  Badge,
+  Progress,
   Tooltip,
-  useColorModeValue,
-  SlideFade
+  SlideFade,
+  useColorModeValue
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import { IconType } from 'react-icons';
@@ -24,7 +26,10 @@ import {
   FaFireAlt, 
   FaMagic,
   FaInfoCircle,
-  FaTrophy
+  FaTrophy,
+  FaLock,
+  FaLeaf,
+  FaClock
 } from 'react-icons/fa';
 
 // Define types
@@ -54,18 +59,17 @@ interface BuildingCardProps {
   onUpgrade: (id: number) => void;
 }
 
-// Animation variants for building card
+// Animation variants for building card - simplified for performance
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: (i: number) => ({
+  visible: {
     opacity: 1,
     y: 0,
     transition: { 
       duration: 0.4,
-      delay: 0.1 * i,
       ease: [0.22, 1, 0.36, 1]
     }
-  }),
+  },
   hover: {
     y: -8,
     boxShadow: '0 15px 30px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
@@ -119,11 +123,11 @@ const containerVariants = {
   }
 };
 
-// Achievement notification component (simplified for now)
-const AchievementNotification = () => null;
+// Remove unused AchievementNotification component
 
 // Building card component
 const BuildingCard: React.FC<BuildingCardProps> = ({ building, onUpgrade }) => {
+  const [isHovered, setIsHovered] = useState(false);
   const [isTapped, setIsTapped] = useState(false);
   
   const handleUpgrade = () => {
@@ -142,31 +146,22 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building, onUpgrade }) => {
     onUpgrade(building.id);
   };
   
-  // Simple particle effect for upgrades
-  const renderParticles = () => {
-    return null; // Disabled for performance
-  }
+  // Simple particle effect for upgrades - disabled for performance
+  const renderParticles = () => null;
   
-  const cardBg = 'gray.800';
-  const borderColor = 'gray.700';
-  const hoverBg = 'gray.700';
+  // Theme colors
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const hoverBg = useColorModeValue('gray.50', 'gray.700');
   
   return (
     <Box
       as={motion.div}
       initial="hidden"
-      animate={controls}
-      onAnimationComplete={() => {
-        if (building.isUpgrading) {
-          controls.start('upgrade');
-        } else {
-          controls.start('visible');
-        }
-      }}
+      animate="visible"
       whileHover="hover"
       whileTap={isTapped ? 'tap' : undefined}
       variants={cardVariants}
-      custom={building.id % 3} // Stagger animation based on ID
       bg={cardBg}
       borderWidth="1px"
       borderColor={borderColor}
@@ -729,8 +724,15 @@ const DashboardHome = () => {
                   key={i}
                   as={motion.div}
                   initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
+                  animate={{ 
+                    opacity: 1, 
+                    y: 0,
+                    transition: {
+                      duration: 0.3,
+                      delay: i * 0.1,
+                      ease: 'easeOut'
+                    }
+                  }}
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.98 }}
                   p={3}

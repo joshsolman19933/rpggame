@@ -1,31 +1,6 @@
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Flex, 
-  Input, 
-  Button, 
-  Text, 
-  Avatar, 
-  IconButton,
-  Divider,
-  HStack,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  Badge
-} from '@chakra-ui/react';
-import { 
-  FaPaperPlane, 
-  FaSmile, 
-  FaImage, 
-  FaChevronUp, 
-  FaChevronDown,
-  FaGlobe,
-  FaUserFriends,
-  FaHashtag,
-  FaCog
-} from 'react-icons/fa';
+import { Box, Button, Text, VStack } from '@chakra-ui/react';
+import { useChat } from '../../../hooks/useChat';
 
 // Chat message component
 const Message: React.FC<{
@@ -144,51 +119,51 @@ const ChannelSelector: React.FC = () => {
 const ChatPanel: React.FC = () => {
   const [message, setMessage] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const toast = useToast();
+  
+  // Initialize chat hook
+  const {
+    messages,
+    activeChannel,
+    sendMessage,
+    isLoading,
+    error,
+    isTyping,
+    typingUsers
+  } = useChat('global');
   
   // Dark theme colors
   const bgColor = 'rgba(26, 32, 44, 0.95)';
   const borderColor = 'rgba(255, 255, 255, 0.1)';
   const inputBg = 'rgba(45, 55, 72, 0.7)';
   
-  // Sample messages
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      sender: 'Harcos123',
-      message: 'Sziasztok! Új vagyok itt, valaki segítene elindulni?',
-      time: '10:23',
-      avatar: 'https://i.pravatar.cc/150?u=harcos123'
-    },
-    {
-      id: 2,
-      sender: 'Varázsló',
-      message: 'Üdvözöllek! Miben segíthetek?',
-      time: '10:25',
-      avatar: 'https://i.pravatar.cc/150?u=varazslo'
-    },
-    {
-      id: 3,
-      sender: 'Te',
-      message: 'Köszönöm, már megtaláltam a választ!',
-      time: '10:26',
-      isCurrentUser: true
-    },
-  ]);
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
   
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim()) return;
+    if (!message.trim() || !activeChannel) return;
     
-    const newMessage = {
-      id: messages.length + 1,
-      sender: 'Te',
-      message: message.trim(),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isCurrentUser: true
-    };
-    
-    setMessages([...messages, newMessage]);
-    setMessage('');
+    try {
+      await sendMessage(message);
+      setMessage('');
+    } catch (error) {
+      toast({
+        title: 'Hiba történt',
+        description: 'Nem sikerült elküldeni az üzenetet',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+  
+  // Format time from ISO string
+  const formatTime = (isoString: string) => {
+    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
   
   return (
@@ -199,11 +174,14 @@ const ChatPanel: React.FC = () => {
       right={0}
       bg={bgColor}
       borderTopWidth="1px"
-      borderColor={borderColor}
+      borderTopStyle="solid"
+      borderTopColor={borderColor}
+      zIndex={10}
+      maxH={isExpanded ? '80vh' : '50px'}
+      transition="all 0.3s ease"
       boxShadow="0 -2px 10px rgba(0, 0, 0, 0.2)"
-      zIndex="sticky"
-      maxH={isExpanded ? '400px' : '40px'}
-      transition="max-height 0.3s ease"
+      display="flex"
+      flexDirection="column"
     >
       {/* Header */}
       <Flex
@@ -234,16 +212,48 @@ const ChatPanel: React.FC = () => {
         maxH="300px"
         display={isExpanded ? 'block' : 'none'}
       >
-        {messages.map(msg => (
-          <Message
-            key={msg.id}
-            sender={msg.sender}
-            message={msg.message}
-            time={msg.time}
-            isCurrentUser={msg.isCurrentUser}
-            avatar={msg.avatar}
-          />
-        ))}
+        <Box flex="1" overflowY="auto" p={4} position="relative">
+          {isLoading && messages.length === 0 ? (
+            <VStack spacing={4} justify="center" h="100%">
+              <Spinner size="xl" color="blue.400" />
+              <Text color="whiteAlpha.700">Üzenetek betöltése...</Text>
+            </VStack>
+          ) : error ? (
+            <VStack spacing={4} justify="center" h="100%" color="red.400">
+              <FaExclamationCircle size={32} />
+              <Text>Hiba történt az üzenetek betöltésekor</Text>
+              <Button 
+                size="sm" 
+                colorScheme="red" 
+                variant="outline"
+                onClick={() => window.location.reload()}
+              >
+                Újrapróbálás
+              </Button>
+            </VStack>
+          ) : (
+            <>
+              {messages.map((msg) => (
+                <Message
+                  key={msg.id}
+                  sender={msg.senderName || 'Ismeretlen'}
+                  message={msg.content}
+                  time={formatTime(msg.timestamp)}
+                  isCurrentUser={msg.senderId === 'current-user-id'}
+                  avatar={msg.senderAvatar}
+                />
+              ))}
+              {isTyping && typingUsers.length > 0 && (
+                <Box mb={2} ml={2}>
+                  <Text fontSize="xs" color="whiteAlpha.600">
+                    {typingUsers.map(u => u.id).join(', ')} {typingUsers.length === 1 ? 'gépel...' : 'gépelnek...'}
+                  </Text>
+                </Box>
+              )}
+              <div ref={messagesEndRef} />
+            </>
+          )}
+        </Box>
       </Box>
       
       {/* Message form */}
@@ -256,22 +266,26 @@ const ChatPanel: React.FC = () => {
         <form onSubmit={handleSendMessage}>
           <Flex>
             <Input
+              placeholder="Írj egy üzenetet..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Írd ide az üzeneted..."
-              size="sm"
-              borderRadius="full"
-              bg={inputBg}
-              borderColor={borderColor}
-              _hover={{ borderColor: 'blue.400' }}
-              _focus={{
-                borderColor: 'blue.400',
-                boxShadow: '0 0 0 1px #3182ce',
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage(e);
+                }
               }}
-              color="whiteAlpha.900"
+              bg={inputBg}
+              border="none"
+              color="white"
               _placeholder={{ color: 'whiteAlpha.600' }}
-              borderRightRadius={0}
-              borderRight="none"
+              _focus={{ boxShadow: '0 0 0 1px rgba(66, 153, 225, 0.6)' }}
+              flex="1"
+              isDisabled={isLoading}
+              onFocus={() => {
+                // Notify server user is typing
+                // This would be handled by the useChat hook
+              }}
             />
             <Button
               type="submit"
