@@ -1,0 +1,168 @@
+import { ChakraProvider, Box } from '@chakra-ui/react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from './contexts/AuthContext';
+import { extendTheme } from '@chakra-ui/react';
+import LandingPage from './pages/LandingPage';
+
+// Create a client for React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
+const theme = extendTheme({
+  colors: {
+    brand: {
+      50: '#e6f7ff',
+      100: '#b3e0ff',
+      200: '#80c9ff',
+      300: '#4db2ff',
+      400: '#1a9bff',
+      500: '#0084ff',
+      600: '#006acc',
+      700: '#004f99',
+      800: '#003566',
+      900: '#001a33',
+    },
+  },
+  fonts: {
+    heading: '\"Poppins\", sans-serif',
+    body: '\"Inter\", sans-serif',
+  },
+  components: {
+    Button: {
+      baseStyle: {
+        fontWeight: 'semibold',
+        borderRadius: 'md',
+      },
+      defaultProps: {
+        colorScheme: 'brand',
+      },
+    },
+    Input: {
+      defaultProps: {
+        focusBorderColor: 'brand.400',
+      },
+    },
+  },
+});
+        variant="outline" 
+        colorScheme="brand" 
+        size="lg" 
+        width="full"
+      >
+        Bejelentkezés
+      </Button>
+    </VStack>
+  </Box>
+);
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ChakraProvider theme={theme}>
+        <Router>
+          <AuthProvider>
+            <Box minH="100vh" bg="gray.50">
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<div>Bejelentkezés</div>} />
+                <Route path="/register" element={<div>Regisztráció</div>} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Box>
+          </AuthProvider>
+        </Router>
+      </ChakraProvider>
+    </QueryClientProvider>
+  );
+}
+      },
+      defaultProps: {
+        colorScheme: 'brand',
+      },
+    },
+    Input: {
+      defaultProps: {
+        focusBorderColor: 'brand.400',
+      },
+    },
+  },
+
+// Temporary Landing Page Component
+const LandingPage = () => (
+  <Box minH="100vh" bgImage="url('/assets/images/landing-bg.jpg')" bgSize="cover" bgPosition="center">
+    <Box bg="rgba(0, 0, 0, 0.7)" minH="100vh" color="white">
+      <Container maxW="container.xl" pt={20}>
+        <Flex direction={{ base: 'column', md: 'row' }} align="center" justify="space-between" minH="80vh">
+          <VStack align="start" spacing={6} maxW="2xl" py={20}>
+            <Heading as="h1" size="4xl" fontWeight="bold" color="brand.300" textShadow="2px 2px 4px rgba(0,0,0,0.5)">
+              Birodalmi Kalandok
+            </Heading>
+            <Text fontSize="xl" color="gray.200">
+              Építsd fel birodalmad a semmiből, hódítsd meg új területeket, és uralkodj a középkori világ felett ebben az izgalmas stratégiai játékban!
+            </Text>
+            <Flex gap={4} direction={{ base: 'column', sm: 'row' }} w="full">
+              <Button 
+                as="a" 
+                href="/register" 
+                colorScheme="brand" 
+                size="lg" 
+                px={8}
+                _hover={{ transform: 'translateY(-2px)' }}
+                transition="all 0.2s"
+              >
+                Kezdjük el!
+              </Button>
+              <Button 
+                as="a" 
+                href="/login" 
+                variant="outline" 
+                colorScheme="whiteAlpha" 
+                size="lg" 
+                px={8}
+                _hover={{ bg: 'rgba(255,255,255,0.1)' }}
+              >
+                Bejelentkezés
+              </Button>
+            </Flex>
+          </VStack>
+          <Box display={{ base: 'none', lg: 'block' }}>
+            <Image 
+              src="/assets/images/landing-hero.png" 
+              alt="Hero" 
+              maxH="600px" 
+              objectFit="contain"
+            />
+          </Box>
+        </Flex>
+      </Container>
+    </Box>
+  </Box>
+);
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ChakraProvider theme={theme}>
+        <Router>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<div>Login Page</div>} />
+              <Route path="/register" element={<div>Register Page</div>} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AuthProvider>
+        </Router>
+      </ChakraProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;

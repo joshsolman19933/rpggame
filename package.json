@@ -1,0 +1,13 @@
+{
+  "name": "my-project",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "dev": "concurrently \"npm:dev:server\" \"npm:dev:client\" --names \"SRV,CLI\" -c \"bgBlue.bold,green.bold\" --kill-others-on-fail"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
